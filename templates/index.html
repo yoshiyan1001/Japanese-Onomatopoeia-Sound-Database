@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Onomatopoeia Annotator</title>
+  <script src="/static/wavesurfer.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #waveform { border: 1px solid #ccc; margin: 10px 0; height: 128px; }
+  </style>
+</head>
+<body>
+
+  <h1>Annotate Japanese Onomatopoeia</h1>
+  <div id="waveform"></div>
+  <button onclick="saveAnnotation()">Save Annotation</button>
+
+  <script>
+    const soundFile = "{{ sound_file }}";
+    const wavesurfer = WaveSurfer.create({
+      container: '#waveform',
+      waveColor: '#ddd',
+      progressColor: '#4a90e2',
+      plugins: [ WaveSurfer.regions.create() ]
+    });
+
+    wavesurfer.load("/sounds/" + + soundFile);
+
+    wavesurfer.on('ready', () => {
+      wavesurfer.enableDragSelection({});
+    });
+
+    function saveAnnotation() {
+      const regions = Object.values(wavesurfer.regions.list);
+      if (regions.length === 0) {
+        alert("Please select a region first.");
+        return;
+      }
+
+      const r = regions[0];
+      const label = prompt("Onomatopoeia (e.g., ごろごろ):");
+      const description = prompt("Description of the sound:");
+
+      fetch("/save_annotation", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          sound_file: soundFile,
+          start_time: r.start,
+          end_time: r.end,
+          label: label,
+          description: description
+        })
+      }).then(res => res.json()).then(data => {
+        alert("Annotation saved!");
+        r.remove();
+      });
+    }
+  </script>
+</body>
+</html>
